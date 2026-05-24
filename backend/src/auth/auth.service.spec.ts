@@ -6,6 +6,7 @@ import { HashingService } from './hashing.service';
 import { LoginDto } from './dto/login.dto';
 import { User } from '@prisma/client';
 import { UnauthorizedException } from '@nestjs/common';
+import { LoginResponseDto } from './dto/login-response.dto';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -99,14 +100,16 @@ describe('AuthService', () => {
     it('Should return access token and user data if login success', async () => {
       const result = await service.login(dto);
 
-      expect(result).toEqual({
+      const expectedResponse: LoginResponseDto = {
         accessToken: 'fakeJwtToken',
         user: {
           id: mockUser.id,
           email: mockUser.email,
           role: mockUser.role,
         },
-      });
+      };
+
+      expect(result).toEqual(expectedResponse);
 
       expect(jwtService.sign).toHaveBeenCalledWith({
         sub: mockUser.id,

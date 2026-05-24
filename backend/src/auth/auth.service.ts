@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
+import { LoginResponseDto } from './dto/login-response.dto';
 import { HashingService } from './hashing.service';
 
 @Injectable()
@@ -27,7 +28,7 @@ export class AuthService {
     return user;
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto): Promise<LoginResponseDto> {
     const user = await this.validateUser(dto);
 
     const payload = {

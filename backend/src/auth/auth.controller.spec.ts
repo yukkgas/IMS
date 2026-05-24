@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { Role } from '@prisma/client';
 import { UnauthorizedException } from '@nestjs/common';
+import { LoginResponseDto } from './dto/login-response.dto';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -14,7 +15,7 @@ describe('AuthController', () => {
   };
 
   const dto: LoginDto = { email: 'test@test.com', password: 'password123' };
-  const mockLoginResponse = {
+  const mockLoginResponse: LoginResponseDto = {
     accessToken: 'fakeJwtToken',
     user: { id: '123', email: 'test@test.com', role: Role.STOREKEEPER },
   };
