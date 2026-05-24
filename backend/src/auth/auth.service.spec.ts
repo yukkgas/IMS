@@ -8,24 +8,14 @@ import { User } from '@prisma/client';
 import { UnauthorizedException } from '@nestjs/common';
 
 describe('AuthService', () => {
-  let authService: AuthService;
+  let service: AuthService;
   let prisma: PrismaService;
   let jwtService: JwtService;
   let hashingService: HashingService;
 
-  const mockPrismaService = {
-    user: {
-      findUnique: jest.fn(),
-    },
-  };
-
-  const mockJwtService = {
-    sign: jest.fn(),
-  };
-
-  const mockHashingService = {
-    compare: jest.fn(),
-  };
+  const mockPrismaService = { user: { findUnique: jest.fn() } };
+  const mockJwtService = { sign: jest.fn() };
+  const mockHashingService = { compare: jest.fn() };
 
   const dto: LoginDto = { email: 'test@test.com', password: 'password123' };
 
@@ -39,29 +29,26 @@ describe('AuthService', () => {
     ...overrides,
   });
 
+  const mockUser = getMockUser();
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
-        {
-          provide: JwtService,
-          useValue: mockJwtService,
-        },
-        {
-          provide: HashingService,
-          useValue: mockHashingService,
-        },
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: HashingService, useValue: mockHashingService },
       ],
     }).compile();
 
-    authService = module.get<AuthService>(AuthService);
+    service = module.get<AuthService>(AuthService);
     prisma = module.get<PrismaService>(PrismaService);
     jwtService = module.get<JwtService>(JwtService);
     hashingService = module.get<HashingService>(HashingService);
+
+    jest.mocked(prisma.user.findUnique).mockResolvedValue(mockUser);
+    jest.mocked(hashingService.compare).mockResolvedValue(true);
+    jest.mocked(jwtService.sign).mockReturnValue('fakeJwtToken');
   });
 
   afterEach(() => {
@@ -69,17 +56,12 @@ describe('AuthService', () => {
   });
 
   it('Should be defined', () => {
-    expect(authService).toBeDefined();
+    expect(service).toBeDefined();
   });
 
   describe('validateUser', () => {
-    const mockUser = getMockUser();
-
     it('Should return user if provided credentials are valid', async () => {
-      jest.mocked(prisma.user.findUnique).mockResolvedValue(mockUser);
-      jest.mocked(hashingService.compare).mockResolvedValue(true);
-
-      const result = await authService.validateUser(dto);
+      const result = await service.validateUser(dto);
 
       expect(result).toEqual(mockUser);
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
@@ -94,17 +76,16 @@ describe('AuthService', () => {
     it('Should throw UnauthorizedException exception if user is not found', async () => {
       jest.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
-      await expect(authService.validateUser(dto)).rejects.toThrow(
+      await expect(service.validateUser(dto)).rejects.toThrow(
         UnauthorizedException,
       );
       expect(hashingService.compare).not.toHaveBeenCalled();
     });
 
     it('Should throw UnauthorizedException exepction if password is wrong', async () => {
-      jest.mocked(prisma.user.findUnique).mockResolvedValue(mockUser);
       jest.mocked(hashingService.compare).mockResolvedValue(false);
 
-      await expect(authService.validateUser(dto)).rejects.toThrow(
+      await expect(service.validateUser(dto)).rejects.toThrow(
         UnauthorizedException,
       );
       expect(hashingService.compare).toHaveBeenCalledWith(
@@ -115,14 +96,8 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    const mockUser = getMockUser();
-
     it('Should return access token and user data if login success', async () => {
-      jest.mocked(prisma.user.findUnique).mockResolvedValue(mockUser);
-      jest.mocked(hashingService.compare).mockResolvedValue(true);
-      jest.mocked(jwtService.sign).mockReturnValue('fakeJwtToken');
-
-      const result = await authService.login(dto);
+      const result = await service.login(dto);
 
       expect(result).toEqual({
         accessToken: 'fakeJwtToken',
@@ -143,9 +118,7 @@ describe('AuthService', () => {
     it('Should throw UnauthorizedException if validation fails', async () => {
       jest.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
-      await expect(authService.login(dto)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.login(dto)).rejects.toThrow(UnauthorizedException);
 
       expect(jwtService.sign).not.toHaveBeenCalled();
     });
